@@ -153,4 +153,6 @@ if (createTheApps != "nextjs") {
   }
 }
 
+log.step("Setting up supabase project locally!");
+
 outro("Monolaunch");
