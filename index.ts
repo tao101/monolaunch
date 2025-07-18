@@ -7,22 +7,22 @@ import {
   outro,
   select,
   text,
-  spinner,
 } from "@clack/prompts";
 import { parseArgs } from "node:util";
-import path from "node:path";
-import fs from "node:fs";
+import { createMonorepo, createWebOnlyApp } from "./src/generators.js";
 
 intro("Welcome to Monolaunch");
-
-const calledFromDirectory = process.cwd();
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
   options: {
-    option: {
+    template: {
       type: "string",
-      short: "o",
+      short: "t",
+    },
+    architecture: {
+      type: "string",
+      short: "a",
     },
     help: {
       type: "boolean",
@@ -36,21 +36,36 @@ const { values, positionals } = parseArgs({
 if (values.help) {
   log.info("Usage: monolaunch [app-name] [options]");
   log.info("");
+  log.info("Arguments:");
+  log.info("  app-name                  Name of your application");
+  log.info("");
   log.info("Options:");
-  log.info("  -o, --option <type>    Template type (bare|opinionated)");
-  log.info("  -h, --help            Show help");
+  log.info("  -t, --template <type>     Template type (bare|opinionated)");
+  log.info(
+    "  -a, --architecture <type> Architecture type (monorepo|nextjs-only)"
+  );
+  log.info("  -h, --help               Show help");
   log.info("");
   log.info("Examples:");
-  log.info("  monolaunch my-app -o bare");
-  log.info("  monolaunch my-app --option opinionated");
+  log.info("  monolaunch my-app -t bare -a monorepo");
+  log.info(
+    "  monolaunch my-app --template opinionated --architecture nextjs-only"
+  );
+  log.info("  monolaunch my-app -t opinionated");
   log.info("  monolaunch");
   process.exit(0);
 }
 
 let appName = positionals[0];
 if (!appName) {
+  log.info("📝 Let's start by setting up your project name.");
+  log.info(
+    "This will be used as the folder name and package name for your project."
+  );
+
   const appNamePrompt = await text({
     message: "What is your app name?",
+    placeholder: "my-awesome-app",
   });
 
   if (isCancel(appNamePrompt)) {
@@ -66,13 +81,73 @@ if (isCancel(appName)) {
   process.exit(0);
 }
 
-let templateType = values.option;
+log.info(`✅ Project name set to: ${appName}`);
+log.info("");
+
+let createOption = values.architecture;
+if (!createOption) {
+  log.info("🏗️  Next, let's decide what to build.");
+  log.info("Choose the architecture that best fits your project needs:");
+  log.info("");
+
+  const createOptionPrompt = await select({
+    message: "What would you like to create?",
+    options: [
+      {
+        value: "monorepo",
+        label: "Full Stack Monorepo",
+        hint: "Next.js web app + React Native Expo mobile app + Supabase backend",
+      },
+      {
+        value: "nextjs-only",
+        label: "Web App Only",
+        hint: "Next.js web application with Supabase backend integration",
+      },
+    ],
+  });
+
+  if (isCancel(createOptionPrompt)) {
+    cancel("Operation cancelled.");
+    process.exit(0);
+  }
+
+  createOption = createOptionPrompt;
+}
+
+if (isCancel(createOption)) {
+  cancel("Operation cancelled.");
+  process.exit(0);
+}
+
+if (createOption && !["monorepo", "nextjs-only"].includes(createOption)) {
+  cancel(
+    `Invalid architecture type: ${createOption}. Must be 'monorepo' or 'nextjs-only'.`
+  );
+  process.exit(1);
+}
+
+log.info(`✅ Architecture selected: ${createOption}`);
+log.info("");
+
+let templateType = values.template;
 if (!templateType) {
+  log.info("🎨 Finally, let's choose your template configuration.");
+  log.info("This determines what libraries and tooling will be included:");
+  log.info("");
+
   const templateTypePrompt = await select({
     message: "Pick a template type.",
     options: [
-      { value: "bare", label: "Bare" },
-      { value: "opinionated", label: "Opinionated" },
+      {
+        value: "bare",
+        label: "Bare",
+        hint: "Only basic Next.js and React Native apps - no extra libraries or tooling",
+      },
+      {
+        value: "opinionated",
+        label: "Opinionated",
+        hint: "Adds extra libraries: Zod, ShadCN, Legend State, ESLint, Prettier & more",
+      },
     ],
   });
 
@@ -96,63 +171,55 @@ if (templateType && !["bare", "opinionated"].includes(templateType)) {
   process.exit(1);
 }
 
-// Always ask about app creation (as per your requirement)
-const createTheApps = await select({
-  message: "Create both apps or only one?",
-  options: [
-    { value: "both", label: "Create both nextjs and expo apps" },
-    { value: "nextjs", label: "Create only nextjs app" },
-    { value: "expo", label: "Create only expo app" },
-  ],
-});
+log.info(`✅ Template type set to: ${templateType}`);
+log.info("");
 
-if (isCancel(createTheApps)) {
-  cancel("Operation cancelled.");
-  process.exit(0);
+// Log user options and exit
+log.info("📋 === Project Configuration Summary ===");
+log.info(`🏷️  App name: ${appName}`);
+log.info(`⚙️  Template type: ${templateType}`);
+log.info(`🏗️  Architecture: ${createOption}`);
+log.info("");
+
+if (createOption === "monorepo") {
+  log.info("📦 Your monorepo will include:");
+  log.info("   • Next.js web application");
+  log.info("   • React Native Expo mobile app");
+  log.info("   • Supabase backend integration");
+  log.info("   • Shared packages and utilities");
+} else {
+  log.info("📦 Your project will include:");
+  log.info("   • Next.js web application");
+  log.info("   • Supabase backend integration");
+  log.info("   • Optimized for web deployment");
 }
 
-log.info("Creating the template...");
-log.info(`App name: ${appName}`);
-log.info(`Template type: ${templateType}`);
-log.info(`Target directory: ${path.join(calledFromDirectory, appName)}`);
-
-const s = spinner();
-s.start("Creating the directory!");
-
-const targetDirectory = path.join(calledFromDirectory, appName);
-
-try {
-  fs.mkdirSync(targetDirectory, { recursive: true });
-  process.chdir(targetDirectory);
-  s.stop("Directory created!");
-} catch (error) {
-  s.stop("Failed to create directory!");
-  if (error instanceof Error) {
-    cancel(`Error creating directory: ${error.message}`);
-  } else {
-    cancel("Error creating directory: Unknown error");
-  }
-  process.exit(1);
+log.info("");
+if (templateType === "opinionated") {
+  log.info("🔧 Additional libraries and tooling included:");
+  log.info("   • Zod for schema validation");
+  log.info("   • ShadCN UI components");
+  log.info("   • Legend State for state management");
+  log.info("   • ESLint & Prettier for code quality");
+  log.info("   • TypeScript configuration");
+  log.info("   • Testing setup and best practices");
+} else {
+  log.info("🔧 Bare setup includes:");
+  log.info("   • Basic Next.js app (web)");
+  log.info("   • Basic React Native Expo app (mobile)");
+  log.info("   • No additional libraries or tooling");
+  log.info("   • Clean slate for your own choices");
 }
 
-s.start("Creating the pnpm workspace!");
+log.info("");
+log.info("🚀 Starting project creation...");
+log.info("");
 
-s.stop("pnpm workspace created!");
-
-if (createTheApps != "expo") {
-  log.step("Creating the nextjs app!");
-  if (templateType == "opinionated") {
-    log.step("Setting up the nextjs app!");
-  }
+// Call the appropriate generator function
+if (createOption === "monorepo") {
+  await createMonorepo(appName, templateType as "bare" | "opinionated");
+} else {
+  await createWebOnlyApp(appName, templateType as "bare" | "opinionated");
 }
 
-if (createTheApps != "nextjs") {
-  log.step("Creating the expo app!");
-  if (templateType == "opinionated") {
-    log.step("Setting up the expo app!");
-  }
-}
-
-log.step("Setting up supabase project locally!");
-
-outro("Monolaunch");
+outro("Thanks for using Monolaunch! 🚀");
