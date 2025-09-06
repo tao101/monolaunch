@@ -1,7 +1,7 @@
 {
   "name": "monolaunch",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.0",
+  "description": "A powerful CLI tool for creating production-ready full-stack projects with Next.js, React Native (Expo), Supabase, and modern tooling",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
@@ -10,20 +10,43 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "node --watch index.ts",
+    "dev": "tsc --watch",
+    "test": "./test-cli.sh",
+    "test:quick": "node dist/index.js --version && node dist/index.js --help --quiet && echo 'CLI is working!'",
     "prepublishOnly": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "cli",
+    "nextjs",
+    "react-native",
+    "expo",
+    "supabase",
+    "typescript",
+    "monorepo",
+    "fullstack",
+    "scaffold",
+    "generator",
+    "coolify",
+    "shadcn",
+    "tailwindcss"
+  ],
+  "author": "Taoufiq Lotfi",
+  "license": "MIT",
+  "homepage": "https://github.com/taoufiqlotfi/monolaunch#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taoufiqlotfi/monolaunch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/taoufiqlotfi/monolaunch/issues"
+  },
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
     "@clack/prompts": "^0.11.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.14",
-    "typescript": "^5.8.3",
-    "ts-node": "^10.9.2"
+    "typescript": "^5.8.3"
   },
   "files": [
     "dist"
