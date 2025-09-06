@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { existsSync, writeFileSync, mkdirSync, readFileSync, unlinkSync } from "fs";
+import { existsSync, writeFileSync, mkdirSync, readFileSync, unlinkSync, readdirSync } from "fs";
 import { join, basename } from "path";
 
 // Utility function to detect the user's default package manager
@@ -429,6 +429,23 @@ export function createSharedPackage(projectPath: string): void {
     private: true,
     main: "dist/index.js",
     types: "dist/index.d.ts",
+    exports: {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.js"
+      },
+      "./types": {
+        "types": "./dist/types.d.ts",
+        "import": "./dist/types.js",
+        "require": "./dist/types.js"
+      },
+      "./utils": {
+        "types": "./dist/utils.d.ts",
+        "import": "./dist/utils.js",
+        "require": "./dist/utils.js"
+      }
+    },
     scripts: {
       "build": "tsc",
       "dev": "tsc --watch",
@@ -479,7 +496,8 @@ export function capitalizeFirst(str: string): string {
       strict: true,
       esModuleInterop: true,
       skipLibCheck: true,
-      forceConsistentCasingInFileNames: true
+      forceConsistentCasingInFileNames: true,
+      composite: true
     },
     include: ["src/**/*"],
     exclude: ["node_modules", "dist"]
@@ -494,6 +512,94 @@ export function capitalizeFirst(str: string): string {
   console.log("  • Shared package created");
 }
 
+// Configure Next.js for monorepo with shared packages
+export function configureNextjsForMonorepo(nextjsPath: string): void {
+  const nextConfigContent = `/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  transpilePackages: ['@monorepo/shared'],
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js']
+  }
+}
+
+module.exports = nextConfig
+`;
+
+  const tsconfigContent = {
+    extends: "next/core-web-vitals",
+    compilerOptions: {
+      baseUrl: ".",
+      paths: {
+        "@monorepo/shared": ["../../packages/shared/src"],
+        "@monorepo/shared/*": ["../../packages/shared/src/*"]
+      },
+      composite: true
+    },
+    references: [
+      { path: "../../packages/shared" }
+    ]
+  };
+
+  writeFileSync(join(nextjsPath, 'next.config.js'), nextConfigContent);
+  writeFileSync(join(nextjsPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+  
+  console.log("  • Next.js configured for monorepo");
+}
+
+// Configure Expo for monorepo with shared packages  
+export function configureExpoForMonorepo(expoPath: string): void {
+  const tsconfigContent = {
+    extends: "expo/tsconfig.base",
+    compilerOptions: {
+      baseUrl: ".",
+      paths: {
+        "@monorepo/shared": ["../../packages/shared/src"],
+        "@monorepo/shared/*": ["../../packages/shared/src/*"]
+      },
+      composite: true
+    },
+    references: [
+      { path: "../../packages/shared" }
+    ]
+  };
+
+  writeFileSync(join(expoPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+  
+  console.log("  • Expo configured for monorepo");
+}
+
+// Create root TypeScript configuration for monorepo
+export function createRootTsConfig(projectPath: string): void {
+  const tsconfigContent = {
+    compilerOptions: {
+      target: "ES2022",
+      module: "ESNext", 
+      moduleResolution: "node",
+      strict: true,
+      esModuleInterop: true,
+      skipLibCheck: true,
+      forceConsistentCasingInFileNames: true,
+      baseUrl: ".",
+      paths: {
+        "@monorepo/shared": ["packages/shared/src"],
+        "@monorepo/shared/*": ["packages/shared/src/*"]
+      }
+    },
+    references: [
+      { path: "./apps/web" },
+      { path: "./apps/mobile" },
+      { path: "./packages/shared" }
+    ],
+    files: [],
+    include: []
+  };
+
+  writeFileSync(join(projectPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+  
+  console.log("  • Root TypeScript configuration created");
+}
+
 // Create Supabase migration with user roles and auth setup
 export function createSupabaseMigration(projectPath: string): boolean {
   console.log("📊 Creating default Supabase migration...");
@@ -506,7 +612,7 @@ export function createSupabaseMigration(projectPath: string): boolean {
   
   // Find the created migration file
   const migrationsDir = join(projectPath, "supabase", "migrations");
-  const migrationFiles = require('fs').readdirSync(migrationsDir)
+  const migrationFiles = readdirSync(migrationsDir)
     .filter((file: string) => file.includes('initial_setup.sql'))
     .sort()
     .reverse(); // Get the most recent one
@@ -1209,6 +1315,9 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
       "build": "pnpm run --recursive build",
       "start": "pnpm run --recursive start",
       "lint": "pnpm run --recursive lint",
+      "lint:fix": "pnpm run --recursive lint:fix",
+      "format": "pnpm run --recursive format",
+      "format:check": "pnpm run --recursive format:check",
       "type-check": "pnpm run --recursive type-check",
       "test": "pnpm run --recursive test",
       "db:types": "cd apps/web && pnpm run db:types && cd ../mobile && pnpm run db:types",
@@ -1229,7 +1338,10 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
       "prebuild": "expo prebuild",
       "prebuild:clean": "expo prebuild --clean",
       "test": "jest",
-      "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+      "lint": "npx expo lint",
+      "lint:fix": "npx expo lint --fix",
+      "format": "prettier --write .",
+      "format:check": "prettier --check .",
       "type-check": "tsc --noEmit",
       "db:types": "npx supabase gen types typescript --local > types/database.types.ts",
       "db:reset": "npx supabase db reset",
@@ -1245,7 +1357,10 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
       "dev": "next dev",
       "build": "next build",
       "start": "next start",
-      "lint": "next lint",
+      "lint": "eslint .",
+      "lint:fix": "eslint . --fix",
+      "format": "prettier --write .",
+      "format:check": "prettier --check .",
       "type-check": "tsc --noEmit",
       "test": "jest",
       "test:watch": "jest --watch",
@@ -2288,27 +2403,20 @@ export function setupLegendState(projectPath: string, isExpoApp: boolean = false
     console.log("  • Setting up Legend State with Supabase auth integration");
     
     // Install Legend State dependencies
+    // The main package contains all the submodules
     const baseDependencies = [
       "@legendapp/state",
-      "@legendapp/state/sync",
-      "@legendapp/state/sync-plugins/supabase",
       "uuid"
     ];
     
-    const webDependencies = [
-      "@legendapp/state/react",
-      "@legendapp/state/persist-plugins/local-storage"
-    ];
-    
+    // Additional dependencies for React Native (MMKV for persistence)
     const mobileDependencies = [
-      "@legendapp/state/react-native", 
-      "@legendapp/state/persist-plugins/mmkv",
       "react-native-mmkv"
     ];
     
     const dependencies = [
       ...baseDependencies,
-      ...(isExpoApp ? mobileDependencies : webDependencies)
+      ...(isExpoApp ? mobileDependencies : [])
     ];
     
     const installCmd = isExpoApp 
@@ -2575,6 +2683,135 @@ export interface Database {
     return true;
   } catch (error) {
     console.error("Failed to setup Legend State:", error);
+    return false;
+  }
+}
+
+export function setupPrettierAndESLint(projectPath: string, isExpoApp: boolean = false): boolean {
+  try {
+    console.log("🎨 Setting up Prettier and ESLint...");
+
+    if (isExpoApp) {
+      // Setup for Expo/React Native
+      console.log("  • Installing ESLint and Prettier dependencies for Expo");
+      runCommand("npx expo install eslint eslint-config-expo prettier eslint-config-prettier eslint-plugin-prettier --dev", { cwd: projectPath });
+
+      // Create .eslintrc.js for Expo
+      const eslintConfig = `const { defineConfig } = require('eslint/config');
+const expoConfig = require('eslint-config-expo/flat');
+const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
+
+module.exports = defineConfig([
+  expoConfig,
+  eslintPluginPrettierRecommended,
+  {
+    ignores: ['dist/*', 'node_modules/*', '.expo/*'],
+    rules: {
+      'prettier/prettier': 'error',
+    },
+  },
+]);`;
+
+      writeFileSync(join(projectPath, '.eslintrc.js'), eslintConfig);
+
+    } else {
+      // Setup for Next.js
+      console.log("  • Installing ESLint and Prettier dependencies for Next.js");
+      runCommand("pnpm add --save-dev eslint-config-prettier eslint-plugin-prettier prettier", { cwd: projectPath });
+
+      // Create .eslintrc.js for Next.js
+      const eslintConfig = `const { FlatCompat } = require('@eslint/eslintrc');
+
+const compat = new FlatCompat({
+  // import.meta.dirname is available after Node.js v20.11.0
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.config({
+    extends: ['next/core-web-vitals', 'next/typescript', 'prettier'],
+    plugins: ['prettier'],
+    rules: {
+      'prettier/prettier': 'error',
+      'react/no-unescaped-entities': 'off',
+      '@next/next/no-page-custom-font': 'off',
+    },
+  }),
+];
+
+module.exports = eslintConfig;`;
+
+      writeFileSync(join(projectPath, '.eslintrc.js'), eslintConfig);
+    }
+
+    // Create .prettierrc for both
+    const prettierConfig = {
+      printWidth: 100,
+      tabWidth: 2,
+      singleQuote: true,
+      trailingComma: 'es5',
+      semi: true,
+      bracketSameLine: false,
+      bracketSpacing: true,
+    };
+
+    writeFileSync(join(projectPath, '.prettierrc'), JSON.stringify(prettierConfig, null, 2));
+
+    // Create .prettierignore
+    const prettierIgnore = `# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.expo/
+
+# Environment files
+.env*
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db`;
+
+    writeFileSync(join(projectPath, '.prettierignore'), prettierIgnore);
+
+    // Create .eslintignore
+    const eslintIgnore = `# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.expo/
+
+# Environment files
+.env*
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log`;
+
+    writeFileSync(join(projectPath, '.eslintignore'), eslintIgnore);
+
+    console.log("  • ESLint and Prettier configuration files created");
+    console.log("  • Prettier and ESLint setup completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Failed to setup Prettier and ESLint:", error);
     return false;
   }
 }

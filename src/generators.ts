@@ -20,7 +20,11 @@ import {
   setupLegendState,
   setupSupabaseTypes,
   updatePackageJsonScripts,
-  createProjectReadme
+  createProjectReadme,
+  setupPrettierAndESLint,
+  configureNextjsForMonorepo,
+  configureExpoForMonorepo,
+  createRootTsConfig
 } from "./utils.js";
 
 export async function createMonorepo(
@@ -44,6 +48,10 @@ export async function createMonorepo(
   console.log("📁 Creating workspace structure...");
   createPnpmWorkspace(projectPath);
   createSharedPackage(projectPath);
+  
+  // Create root TypeScript configuration
+  console.log("  • Setting up root TypeScript configuration");
+  createRootTsConfig(projectPath);
 
   // Create apps directories
   runCommand("mkdir -p apps/web apps/mobile");
@@ -79,7 +87,14 @@ export async function createMonorepo(
   if (templateType === "opinionated") {
     console.log("  • Setting up Legend State store");
     setupLegendState(webAppPath, false); // false = Next.js app
+    
+    console.log("  • Setting up Prettier and ESLint");
+    setupPrettierAndESLint(webAppPath, false); // false = Next.js app
   }
+
+  // Configure Next.js for monorepo TypeScript imports
+  console.log("  • Configuring Next.js for monorepo");
+  configureNextjsForMonorepo(webAppPath);
 
   console.log("📱 Setting up React Native Expo app...");
   const mobileAppPath = join(projectPath, "apps", "mobile");
@@ -105,6 +120,9 @@ export async function createMonorepo(
     
     console.log("  • Adding gesture handler for navigation");
     runCommand("npx expo install react-native-gesture-handler", { cwd: mobileAppPath });
+    
+    console.log("  • Installing Zod for schema validation");
+    runCommand("npx expo install zod", { cwd: mobileAppPath });
   }
 
   console.log("🗄️  Setting up Supabase integration...");
@@ -116,7 +134,14 @@ export async function createMonorepo(
   if (templateType === "opinionated") {
     console.log("  • Setting up Legend State store");
     setupLegendState(mobileAppPath, true); // true = Expo app
+    
+    console.log("  • Setting up Prettier and ESLint");
+    setupPrettierAndESLint(mobileAppPath, true); // true = Expo app
   }
+
+  // Configure Expo for monorepo TypeScript imports
+  console.log("  • Configuring Expo for monorepo");
+  configureExpoForMonorepo(mobileAppPath);
 
   console.log("📦 Installing workspace dependencies...");
   runCommand("pnpm install", { cwd: projectPath });
@@ -230,6 +255,9 @@ export async function createWebOnlyApp(
   if (templateType === "opinionated") {
     console.log("  • Setting up Legend State store");
     setupLegendState(projectPath, false); // false = Next.js app
+    
+    console.log("  • Setting up Prettier and ESLint");
+    setupPrettierAndESLint(projectPath, false); // false = Next.js app
   }
 
   // Create default migration and update config

@@ -20,4 +20,5 @@ export declare function createProjectClaudeMd(projectPath: string, projectName: 
 export declare function setupExpoRouter(projectPath: string): boolean;
 export declare function setupReactNativeReusables(projectPath: string): boolean;
 export declare function setupLegendState(projectPath: string, isExpoApp?: boolean): boolean;
+export declare function setupPrettierAndESLint(projectPath: string, isExpoApp?: boolean): boolean;
 //# sourceMappingURL=utils.d.ts.map

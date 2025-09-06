@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import { join } from "path";
 import { confirm } from "@clack/prompts";
-import { detectPackageManager, runCommand, setupSupabase, setupShadcn, createEnvFile, createSupabaseClient, createCoolifyConfig, createPnpmWorkspace, createSharedPackage, createSupabaseMigration, updateSupabaseConfig, createProjectClaudeMd, setupExpoRouter, createNextjsMiddleware, setupReactNativeReusables, setupLegendState, setupSupabaseTypes, updatePackageJsonScripts, createProjectReadme } from "./utils.js";
+import { detectPackageManager, runCommand, setupSupabase, setupShadcn, createEnvFile, createSupabaseClient, createCoolifyConfig, createPnpmWorkspace, createSharedPackage, createSupabaseMigration, updateSupabaseConfig, createProjectClaudeMd, setupExpoRouter, createNextjsMiddleware, setupReactNativeReusables, setupLegendState, setupSupabaseTypes, updatePackageJsonScripts, createProjectReadme, setupPrettierAndESLint } from "./utils.js";
 export async function createMonorepo(appName, templateType, options = {}) {
     console.log(`🏗️  Creating monorepo: ${appName}`);
     console.log(`📦 Template type: ${templateType}`);
@@ -43,6 +43,8 @@ export async function createMonorepo(appName, templateType, options = {}) {
     if (templateType === "opinionated") {
         console.log("  • Setting up Legend State store");
         setupLegendState(webAppPath, false); // false = Next.js app
+        console.log("  • Setting up Prettier and ESLint");
+        setupPrettierAndESLint(webAppPath, false); // false = Next.js app
     }
     console.log("📱 Setting up React Native Expo app...");
     const mobileAppPath = join(projectPath, "apps", "mobile");
@@ -63,6 +65,8 @@ export async function createMonorepo(appName, templateType, options = {}) {
         setupReactNativeReusables(mobileAppPath);
         console.log("  • Adding gesture handler for navigation");
         runCommand("npx expo install react-native-gesture-handler", { cwd: mobileAppPath });
+        console.log("  • Installing Zod for schema validation");
+        runCommand("npx expo install zod", { cwd: mobileAppPath });
     }
     console.log("🗄️  Setting up Supabase integration...");
     await setupSupabase(mobileAppPath);
@@ -72,6 +76,8 @@ export async function createMonorepo(appName, templateType, options = {}) {
     if (templateType === "opinionated") {
         console.log("  • Setting up Legend State store");
         setupLegendState(mobileAppPath, true); // true = Expo app
+        console.log("  • Setting up Prettier and ESLint");
+        setupPrettierAndESLint(mobileAppPath, true); // true = Expo app
     }
     console.log("📦 Installing workspace dependencies...");
     runCommand("pnpm install", { cwd: projectPath });
@@ -161,6 +167,8 @@ export async function createWebOnlyApp(appName, templateType, options = {}) {
     if (templateType === "opinionated") {
         console.log("  • Setting up Legend State store");
         setupLegendState(projectPath, false); // false = Next.js app
+        console.log("  • Setting up Prettier and ESLint");
+        setupPrettierAndESLint(projectPath, false); // false = Next.js app
     }
     // Create default migration and update config
     console.log("🔄 Creating default Supabase migration...");
