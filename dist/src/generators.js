@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import { join } from "path";
 import { confirm } from "@clack/prompts";
-import { detectPackageManager, runCommand, setupSupabase, setupShadcn, createEnvFile, createSupabaseClient, createCoolifyConfig, createPnpmWorkspace, createSharedPackage, createSupabaseMigration, updateSupabaseConfig, createProjectClaudeMd, setupExpoRouter, createNextjsMiddleware, setupReactNativeReusables, setupLegendState, setupSupabaseTypes, updatePackageJsonScripts, createProjectReadme, setupPrettierAndESLint } from "./utils.js";
+import { detectPackageManager, runCommand, setupSupabase, setupShadcn, createEnvFile, createSupabaseClient, createCoolifyConfig, createPnpmWorkspace, createSharedPackage, createSupabaseMigration, updateSupabaseConfig, createProjectClaudeMd, setupExpoRouter, createNextjsMiddleware, setupReactNativeReusables, setupLegendState, setupSupabaseTypes, updatePackageJsonScripts, createProjectReadme, setupPrettierAndESLint, configureNextjsForMonorepo, configureExpoForMonorepo, createRootTsConfig } from "./utils.js";
 export async function createMonorepo(appName, templateType, options = {}) {
     console.log(`🏗️  Creating monorepo: ${appName}`);
     console.log(`📦 Template type: ${templateType}`);
@@ -15,6 +15,9 @@ export async function createMonorepo(appName, templateType, options = {}) {
     console.log("📁 Creating workspace structure...");
     createPnpmWorkspace(projectPath);
     createSharedPackage(projectPath);
+    // Create root TypeScript configuration
+    console.log("  • Setting up root TypeScript configuration");
+    createRootTsConfig(projectPath);
     // Create apps directories
     runCommand("mkdir -p apps/web apps/mobile");
     console.log("🌐 Setting up Next.js web app...");
@@ -46,6 +49,9 @@ export async function createMonorepo(appName, templateType, options = {}) {
         console.log("  • Setting up Prettier and ESLint");
         setupPrettierAndESLint(webAppPath, false); // false = Next.js app
     }
+    // Configure Next.js for monorepo TypeScript imports
+    console.log("  • Configuring Next.js for monorepo");
+    configureNextjsForMonorepo(webAppPath);
     console.log("📱 Setting up React Native Expo app...");
     const mobileAppPath = join(projectPath, "apps", "mobile");
     // Create Expo app with basic setup
@@ -79,6 +85,9 @@ export async function createMonorepo(appName, templateType, options = {}) {
         console.log("  • Setting up Prettier and ESLint");
         setupPrettierAndESLint(mobileAppPath, true); // true = Expo app
     }
+    // Configure Expo for monorepo TypeScript imports
+    console.log("  • Configuring Expo for monorepo");
+    configureExpoForMonorepo(mobileAppPath);
     console.log("📦 Installing workspace dependencies...");
     runCommand("pnpm install", { cwd: projectPath });
     // Create default migration and update config

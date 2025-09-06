@@ -403,6 +403,23 @@ export function createSharedPackage(projectPath) {
         private: true,
         main: "dist/index.js",
         types: "dist/index.d.ts",
+        exports: {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.js",
+                "require": "./dist/index.js"
+            },
+            "./types": {
+                "types": "./dist/types.d.ts",
+                "import": "./dist/types.js",
+                "require": "./dist/types.js"
+            },
+            "./utils": {
+                "types": "./dist/utils.d.ts",
+                "import": "./dist/utils.js",
+                "require": "./dist/utils.js"
+            }
+        },
         scripts: {
             "build": "tsc",
             "dev": "tsc --watch",
@@ -449,7 +466,8 @@ export function capitalizeFirst(str: string): string {
             strict: true,
             esModuleInterop: true,
             skipLibCheck: true,
-            forceConsistentCasingInFileNames: true
+            forceConsistentCasingInFileNames: true,
+            composite: true
         },
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"]
@@ -460,6 +478,84 @@ export function capitalizeFirst(str: string): string {
     writeFileSync(join(srcDir, "utils.ts"), utilsContent);
     writeFileSync(join(sharedDir, "tsconfig.json"), JSON.stringify(tsconfigContent, null, 2));
     console.log("  • Shared package created");
+}
+// Configure Next.js for monorepo with shared packages
+export function configureNextjsForMonorepo(nextjsPath) {
+    const nextConfigContent = `/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  transpilePackages: ['@monorepo/shared'],
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js']
+  }
+}
+
+module.exports = nextConfig
+`;
+    const tsconfigContent = {
+        extends: "next/core-web-vitals",
+        compilerOptions: {
+            baseUrl: ".",
+            paths: {
+                "@monorepo/shared": ["../../packages/shared/src"],
+                "@monorepo/shared/*": ["../../packages/shared/src/*"]
+            },
+            composite: true
+        },
+        references: [
+            { path: "../../packages/shared" }
+        ]
+    };
+    writeFileSync(join(nextjsPath, 'next.config.js'), nextConfigContent);
+    writeFileSync(join(nextjsPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+    console.log("  • Next.js configured for monorepo");
+}
+// Configure Expo for monorepo with shared packages  
+export function configureExpoForMonorepo(expoPath) {
+    const tsconfigContent = {
+        extends: "expo/tsconfig.base",
+        compilerOptions: {
+            baseUrl: ".",
+            paths: {
+                "@monorepo/shared": ["../../packages/shared/src"],
+                "@monorepo/shared/*": ["../../packages/shared/src/*"]
+            },
+            composite: true
+        },
+        references: [
+            { path: "../../packages/shared" }
+        ]
+    };
+    writeFileSync(join(expoPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+    console.log("  • Expo configured for monorepo");
+}
+// Create root TypeScript configuration for monorepo
+export function createRootTsConfig(projectPath) {
+    const tsconfigContent = {
+        compilerOptions: {
+            target: "ES2022",
+            module: "ESNext",
+            moduleResolution: "node",
+            strict: true,
+            esModuleInterop: true,
+            skipLibCheck: true,
+            forceConsistentCasingInFileNames: true,
+            baseUrl: ".",
+            paths: {
+                "@monorepo/shared": ["packages/shared/src"],
+                "@monorepo/shared/*": ["packages/shared/src/*"]
+            }
+        },
+        references: [
+            { path: "./apps/web" },
+            { path: "./apps/mobile" },
+            { path: "./packages/shared" }
+        ],
+        files: [],
+        include: []
+    };
+    writeFileSync(join(projectPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
+    console.log("  • Root TypeScript configuration created");
 }
 // Create Supabase migration with user roles and auth setup
 export function createSupabaseMigration(projectPath) {
