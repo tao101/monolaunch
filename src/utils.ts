@@ -409,8 +409,15 @@ export function createPnpmWorkspace(projectPath: string): void {
     }
   };
 
+  // Create .npmrc for proper pnpm hoisting (required for Metro compatibility)
+  const npmrcContent = `node-linker=hoisted
+hoist-pattern[]=*expo*
+hoist-pattern[]=*react-native*
+hoist-pattern[]=*metro*`;
+
   writeFileSync(join(projectPath, "pnpm-workspace.yaml"), workspaceContent);
   writeFileSync(join(projectPath, "package.json"), JSON.stringify(rootPackageJson, null, 2));
+  writeFileSync(join(projectPath, ".npmrc"), npmrcContent);
   console.log("  • pnpm workspace configuration created");
 }
 
@@ -565,15 +572,27 @@ module.exports = nextConfig
   console.log("  • Next.js configured for monorepo");
 }
 
-// Configure Expo for monorepo with shared packages  
+// Configure Expo for monorepo with shared packages
 export function configureExpoForMonorepo(expoPath: string): void {
   const tsconfigContent = {
-    extends: "../../node_modules/expo/tsconfig.base",
+    extends: "expo/tsconfig.base",
     compilerOptions: {
+      target: "esnext",
+      module: "esnext",
+      jsx: "react-native",
+      lib: ["esnext"],
+      moduleResolution: "node",
+      allowSyntheticDefaultImports: true,
+      esModuleInterop: true,
+      noEmit: true,
+      isolatedModules: true,
+      strict: true,
       baseUrl: ".",
       paths: {
         "@monorepo/shared": ["../../packages/shared/src"],
-        "@monorepo/shared/*": ["../../packages/shared/src/*"]
+        "@monorepo/shared/*": ["../../packages/shared/src/*"],
+        "@/*": ["./src/*"],
+        "@/components/*": ["./src/components/*"]
       },
       composite: true
     },
@@ -583,7 +602,32 @@ export function configureExpoForMonorepo(expoPath: string): void {
   };
 
   writeFileSync(join(expoPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
-  
+
+  // Create Metro configuration for monorepo
+  const metroConfig = `const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
+
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, '../..');
+
+const config = getDefaultConfig(projectRoot);
+
+// Watch the workspace root for changes
+config.watchFolders = [workspaceRoot];
+
+// Configure node module resolution for workspace
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
+// Ensure proper platform extensions
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
+
+module.exports = config;`;
+
+  writeFileSync(join(expoPath, 'metro.config.js'), metroConfig);
+
   console.log("  • Expo configured for monorepo");
 }
 
@@ -1980,17 +2024,17 @@ ${isMonorepo ? '- Expo docs: https://docs.expo.dev' : ''}
 
 export function setupExpoRouter(projectPath: string): boolean {
   try {
-    console.log("  • Installing Expo SDK and dependencies");
-    
-    // First install the base Expo SDK
-    if (!runCommand("npm install expo", { cwd: projectPath })) {
+    console.log("  • Installing Expo SDK 52 and dependencies");
+
+    // Install the latest Expo SDK 52
+    if (!runCommand("pnpm add expo@~52.0.0", { cwd: projectPath })) {
       throw new Error("Failed to install Expo SDK");
     }
-    
-    console.log("  • Installing Expo Router dependencies");
-    
-    // Install Expo Router and required dependencies
-    const installCmd = "npx expo install expo-router react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar";
+
+    console.log("  • Installing Expo Router v5 and dependencies");
+
+    // Install Expo Router v5 and required dependencies
+    const installCmd = "npx expo install expo-router@latest react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar";
     if (!runCommand(installCmd, { cwd: projectPath })) {
       throw new Error("Failed to install Expo Router dependencies");
     }
@@ -2112,304 +2156,143 @@ const styles = StyleSheet.create({
 
 export function setupReactNativeReusables(projectPath: string): boolean {
   try {
-    console.log("  • Setting up React Native Reusables with NativeWind");
-    
-    // Install NativeWind and React Native Reusables dependencies
+    console.log("  • Setting up React Native Reusables with CLI");
+
+    // Try using the official CLI to add all components
+    console.log("  • Installing all React Native Reusables components");
+    if (runCommand("pnpm dlx @react-native-reusables/cli@latest add --all --yes", { cwd: projectPath })) {
+      console.log("  • All React Native Reusables components installed successfully");
+      return true;
+    }
+
+    console.log("  • CLI installation failed, setting up minimal fallback");
+
+    // Fallback: Create minimal setup with essential dependencies
     const dependencies = [
-      "nativewind",
+      "nativewind@^4.0.1",
       "tailwindcss",
-      "tailwindcss-animate",
-      "class-variance-authority", 
+      "class-variance-authority",
       "clsx",
-      "tailwind-merge",
-      "react-native-svg",
-      "lucide-react-native",
-      "@rn-primitives/portal"
+      "tailwind-merge"
     ];
     
     const installCmd = `npx expo install ${dependencies.join(' ')}`;
     if (!runCommand(installCmd, { cwd: projectPath })) {
-      throw new Error("Failed to install React Native Reusables dependencies");
+      throw new Error("Failed to install minimal React Native Reusables dependencies");
     }
 
-    // Create lib directory
-    const libDir = join(projectPath, "lib");
-    if (!existsSync(libDir)) {
-      mkdirSync(libDir, { recursive: true });
+    // Create src/lib directory and utils
+    const srcLibDir = join(projectPath, "src", "lib");
+    if (!existsSync(srcLibDir)) {
+      mkdirSync(srcLibDir, { recursive: true });
     }
 
-    // Create tailwind.config.js
-    const tailwindConfig = `/** @type {import('tailwindcss').Config} */
-const { NativeWindStyleSheet } = require('nativewind');
-
-const config = {
-  content: [
-    './App.{js,jsx,ts,tsx}',
-    './src/**/*.{js,jsx,ts,tsx}',
-    './app/**/*.{js,jsx,ts,tsx}',
-    './components/**/*.{js,jsx,ts,tsx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: 'hsl(var(--card))',
-        'card-foreground': 'hsl(var(--card-foreground))',
-        popover: 'hsl(var(--popover))',
-        'popover-foreground': 'hsl(var(--popover-foreground))',
-        primary: 'hsl(var(--primary))',
-        'primary-foreground': 'hsl(var(--primary-foreground))',
-        secondary: 'hsl(var(--secondary))',
-        'secondary-foreground': 'hsl(var(--secondary-foreground))',
-        muted: 'hsl(var(--muted))',
-        'muted-foreground': 'hsl(var(--muted-foreground))',
-        accent: 'hsl(var(--accent))',
-        'accent-foreground': 'hsl(var(--accent-foreground))',
-        destructive: 'hsl(var(--destructive))',
-        'destructive-foreground': 'hsl(var(--destructive-foreground))',
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-      },
-    },
-  },
-  plugins: [],
-};
-
-NativeWindStyleSheet.setOutput({ default: 'native' });
-
-module.exports = config;`;
-
-    writeFileSync(join(projectPath, 'tailwind.config.js'), tailwindConfig);
-
-    // Create global.css
-    const globalCss = `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-  }
-
-  .dark:root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-  }
-}`;
-
-    writeFileSync(join(projectPath, 'global.css'), globalCss);
-
-    // Create navigation theme constants
-    const constantsContent = `export const NAV_THEME = {
-  light: {
-    background: 'hsl(0 0% 100%)', // background
-    border: 'hsl(240 5.9% 90%)', // border
-    card: 'hsl(0 0% 100%)', // card
-    notification: 'hsl(0 84.2% 60.2%)', // destructive
-    primary: 'hsl(240 5.9% 10%)', // primary
-    text: 'hsl(240 10% 3.9%)', // foreground
-  },
-  dark: {
-    background: 'hsl(240 10% 3.9%)', // background
-    border: 'hsl(240 3.7% 15.9%)', // border
-    card: 'hsl(240 10% 3.9%)', // card
-    notification: 'hsl(0 72% 51%)', // destructive
-    primary: 'hsl(0 0% 98%)', // primary
-    text: 'hsl(0 0% 98%)', // foreground
-  },
-};`;
-
-    writeFileSync(join(libDir, 'constants.ts'), constantsContent);
-
-    // Create useColorScheme hook
-    const useColorSchemeContent = `import { useColorScheme as useNativewindColorScheme } from 'nativewind';
-
-export function useColorScheme() {
-  const { colorScheme, setColorScheme, toggleColorScheme } = useNativewindColorScheme();
-  return {
-    colorScheme: colorScheme ?? 'dark',
-    isDarkColorScheme: colorScheme === 'dark',
-    setColorScheme,
-    toggleColorScheme,
-  };
-}`;
-
-    writeFileSync(join(libDir, 'useColorScheme.ts'), useColorSchemeContent);
-
-    // Create cn utility
-    const cnContent = `import { clsx, type ClassValue } from 'clsx';
+    // Create utils.ts with cn function
+    const utilsContent = `import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }`;
 
-    writeFileSync(join(libDir, 'cn.ts'), cnContent);
+    writeFileSync(join(srcLibDir, 'utils.ts'), utilsContent);
 
-    // Create components/ui directory
-    const uiDir = join(projectPath, "components", "ui");
+    // Create src/components/ui directory structure
+    const srcDir = join(projectPath, "src");
+    const componentsDir = join(srcDir, "components");
+    const uiDir = join(componentsDir, "ui");
     if (!existsSync(uiDir)) {
       mkdirSync(uiDir, { recursive: true });
     }
 
-    // Create basic Text component
-    const textComponent = `import * as React from 'react';
-import { Text as RNText } from 'react-native';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '~/lib/cn';
+    // Create basic collapsible component to fix the import error
+    const collapsibleComponent = `import React from 'react';
+import { View, TouchableOpacity } from 'react-native';
+import { cn } from '@/lib/utils';
 
-const textVariants = cva('text-base text-foreground', {
-  variants: {
-    variant: {
-      default: 'text-foreground',
-      destructive: 'text-destructive-foreground',
-      muted: 'text-muted-foreground',
-      secondary: 'text-secondary-foreground',
-    },
-    size: {
-      default: 'text-base',
-      sm: 'text-sm',
-      lg: 'text-lg',
-      xl: 'text-xl',
-    },
+interface CollapsibleProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function Collapsible({ children, className }: CollapsibleProps) {
+  return (
+    <View className={cn('', className)}>
+      {children}
+    </View>
+  );
+}
+
+interface CollapsibleTriggerProps {
+  children: React.ReactNode;
+  onPress?: () => void;
+  className?: string;
+}
+
+export function CollapsibleTrigger({ children, onPress, className }: CollapsibleTriggerProps) {
+  return (
+    <TouchableOpacity onPress={onPress} className={cn('', className)}>
+      {children}
+    </TouchableOpacity>
+  );
+}
+
+interface CollapsibleContentProps {
+  children: React.ReactNode;
+  isOpen?: boolean;
+  className?: string;
+}
+
+export function CollapsibleContent({ children, isOpen = true, className }: CollapsibleContentProps) {
+  if (!isOpen) return null;
+
+  return (
+    <View className={cn('', className)}>
+      {children}
+    </View>
+  );
+}`;
+
+    writeFileSync(join(uiDir, 'collapsible.tsx'), collapsibleComponent);
+
+    // Create basic tailwind config
+    const tailwindConfig = `/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './App.{js,jsx,ts,tsx}',
+    './src/**/*.{js,jsx,ts,tsx}',
+    './app/**/*.{js,jsx,ts,tsx}',
+  ],
+  presets: [require('nativewind/preset')],
+  theme: {
+    extend: {},
   },
-  defaultVariants: {
-    variant: 'default',
-    size: 'default',
-  },
-});
+  plugins: [],
+};`;
 
-interface TextProps
-  extends React.ComponentPropsWithoutRef<typeof RNText>,
-    VariantProps<typeof textVariants> {}
+    writeFileSync(join(projectPath, 'tailwind.config.js'), tailwindConfig);
 
-const Text = React.forwardRef<React.ElementRef<typeof RNText>, TextProps>(
-  ({ className, variant, size, ...props }, ref) => (
-    <RNText
-      ref={ref}
-      className={cn(textVariants({ variant, size }), className)}
-      {...props}
-    />
-  )
-);
-Text.displayName = 'Text';
+    // Create global.css
+    const globalCss = `@tailwind base;
+@tailwind components;
+@tailwind utilities;`;
 
-export { Text, textVariants };`;
+    writeFileSync(join(projectPath, 'global.css'), globalCss);
 
-    writeFileSync(join(uiDir, 'text.tsx'), textComponent);
-
-    // Create basic Button component
-    const buttonComponent = `import * as React from 'react';
-import { Pressable } from 'react-native';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '~/lib/cn';
-
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
-      },
-      size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
-        icon: 'h-10 w-10',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  }
-);
-
-interface ButtonProps
-  extends React.ComponentPropsWithoutRef<typeof Pressable>,
-    VariantProps<typeof buttonVariants> {}
-
-const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
-    <Pressable
-      ref={ref}
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  )
-);
-Button.displayName = 'Button';
-
-export { Button, buttonVariants };`;
-
-    writeFileSync(join(uiDir, 'button.tsx'), buttonComponent);
-
-    // Update babel.config.js to include NativeWind
-    const babelConfigPath = join(projectPath, 'babel.config.js');
+    // Update babel.config.js
     const babelConfig = `module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
-    plugins: ['nativewind/babel'],
+    plugins: [
+      'nativewind/babel',
+    ],
   };
 };`;
 
-    writeFileSync(babelConfigPath, babelConfig);
+    writeFileSync(join(projectPath, 'babel.config.js'), babelConfig);
 
-    // Update metro.config.js for NativeWind
-    const metroConfigPath = join(projectPath, 'metro.config.js');
-    const metroConfig = `const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
-
-const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, { input: './global.css' });`;
-
-    writeFileSync(metroConfigPath, metroConfig);
-
-    console.log("  • React Native Reusables setup completed successfully");
+    console.log("  • React Native Reusables minimal setup completed");
     return true;
   } catch (error) {
     console.error("Failed to setup React Native Reusables:", error);
