@@ -65,6 +65,10 @@ export async function createMonorepo(
     throw new Error("Failed to create Next.js app");
   }
 
+  // Ensure Next.js is installed locally in the app directory for TypeScript config resolution
+  console.log("  • Ensuring Next.js is properly installed locally");
+  runCommand("pnpm add next@latest", { cwd: webAppPath });
+
   // Setup Supabase for web app
   await setupSupabase(webAppPath);
   
@@ -104,6 +108,11 @@ export async function createMonorepo(
   if (!runCommand(`npx create-expo-app@latest mobile --no-install`, { cwd: join(projectPath, "apps") })) {
     throw new Error("Failed to create Expo app");
   }
+
+  // Install dependencies and ensure Expo CLI is available locally for TypeScript config resolution
+  console.log("  • Installing Expo dependencies and CLI locally");
+  runCommand("pnpm install", { cwd: mobileAppPath });
+  runCommand("pnpm add expo@latest", { cwd: mobileAppPath });
 
   // Setup Expo Router for proper navigation
   console.log("🧭 Setting up Expo Router navigation...");

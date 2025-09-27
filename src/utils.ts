@@ -525,7 +525,7 @@ module.exports = nextConfig
 `;
 
   const tsconfigContent = {
-    extends: "next/tsconfig.json",
+    extends: "../../node_modules/next/tsconfig.json",
     compilerOptions: {
       baseUrl: ".",
       paths: {
@@ -548,7 +548,7 @@ module.exports = nextConfig
 // Configure Expo for monorepo with shared packages  
 export function configureExpoForMonorepo(expoPath: string): void {
   const tsconfigContent = {
-    extends: "expo/tsconfig.base",
+    extends: "../../node_modules/expo/tsconfig.base",
     compilerOptions: {
       baseUrl: ".",
       paths: {
