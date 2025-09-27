@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import { join } from "path";
+import { writeFileSync } from "fs";
 import { confirm } from "@clack/prompts";
 import { 
   detectPackageManager, 
@@ -297,7 +298,7 @@ const nextConfig = {
 module.exports = nextConfig
 `;
 
-  require('fs').writeFileSync(join(projectPath, 'next.config.js'), nextConfigContent);
+  writeFileSync(join(projectPath, 'next.config.js'), nextConfigContent);
   console.log("  • Updated Next.js configuration for deployment");
 
   console.log(`✅ Web app ${appName} created successfully!`);

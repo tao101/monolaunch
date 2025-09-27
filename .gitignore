@@ -5,6 +5,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Build output
+dist/
+dist/*
+
 # Runtime data
 pids
 *.pid
@@ -53,6 +57,3 @@ jspm_packages/
 
 # OS generated files
 Thumbs.db
-
-# NOTE: dist/ is intentionally NOT ignored
-# because it's needed for npm package distribution

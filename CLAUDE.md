@@ -81,3 +81,4 @@ The tool is built with TypeScript and uses the `@clack/prompts` library for inte
 - Generator functions are currently placeholder implementations with console logging
 - Package manager detection prioritizes pnpm > yarn > npm based on lock files and global availability
 - The CLI executes external commands to create and configure projects using official tools
+- alawys use pnpm in this project
