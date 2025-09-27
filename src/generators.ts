@@ -290,9 +290,7 @@ export async function createWebOnlyApp(
   const nextConfigContent = `/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
-  }
+  serverExternalPackages: ['@supabase/supabase-js']
 }
 
 module.exports = nextConfig

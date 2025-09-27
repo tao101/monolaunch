@@ -518,16 +518,14 @@ export function configureNextjsForMonorepo(nextjsPath: string): void {
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ['@monorepo/shared'],
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
-  }
+  serverExternalPackages: ['@supabase/supabase-js']
 }
 
 module.exports = nextConfig
 `;
 
   const tsconfigContent = {
-    extends: "next/core-web-vitals",
+    extends: "next/tsconfig.json",
     compilerOptions: {
       baseUrl: ".",
       paths: {
@@ -622,7 +620,7 @@ export function createSupabaseMigration(projectPath: string): boolean {
     return false;
   }
   
-  const migrationFile = join(migrationsDir, migrationFiles[0]);
+  const migrationFile = join(migrationsDir, migrationFiles[0]!);
   
   const migrationContent = `-- Initial setup migration for user roles and authentication
 -- This migration creates a comprehensive user management system with:
