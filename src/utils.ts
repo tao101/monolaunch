@@ -1362,12 +1362,12 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
       "format": "prettier --write .",
       "format:check": "prettier --check .",
       "type-check": "tsc --noEmit",
-      "db:types": "npx supabase gen types typescript --local > types/database.types.ts",
-      "db:reset": "npx supabase db reset",
-      "db:migrate": "npx supabase migration new",
-      "supabase:start": "npx supabase start",
-      "supabase:stop": "npx supabase stop",
-      "supabase:status": "npx supabase status"
+      "db:types": "cd ../web && npx supabase gen types typescript --local > ../mobile/types/database.types.ts",
+      "db:reset": "cd ../web && npx supabase db reset",
+      "db:migrate": "cd ../web && npx supabase migration new",
+      "supabase:start": "cd ../web && npx supabase start",
+      "supabase:stop": "cd ../web && npx supabase stop",
+      "supabase:status": "cd ../web && npx supabase status"
     };
   } else {
     // Next.js scripts

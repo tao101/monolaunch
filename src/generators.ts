@@ -135,8 +135,7 @@ export async function createMonorepo(
     runCommand("npx expo install zod", { cwd: mobileAppPath });
   }
 
-  console.log("🗄️  Setting up Supabase integration...");
-  await setupSupabase(mobileAppPath);
+  console.log("🗄️  Setting up Supabase integration (shared with web app)...");
   createEnvFile(mobileAppPath, true); // true = Expo app
   createSupabaseClient(mobileAppPath, true); // true = Expo app
   setupSupabaseTypes(mobileAppPath, true); // true = Expo app
