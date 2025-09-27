@@ -1349,6 +1349,7 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
     // Expo/React Native scripts
     packageJson.scripts = {
       ...packageJson.scripts,
+      "dev": "expo start",
       "start": "expo start",
       "android": "expo run:android",
       "ios": "expo run:ios",
