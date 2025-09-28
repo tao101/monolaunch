@@ -2,8 +2,11 @@ import { execSync } from "child_process";
 import { join } from "path";
 import { writeFileSync } from "fs";
 import { confirm } from "@clack/prompts";
-import { 
-  detectPackageManager, 
+import {
+  detectPackageManager,
+  getInstallCommand,
+  getDlxCommand,
+  getWorkspaceInstallCommand,
   runCommand, 
   setupSupabase, 
   setupShadcn, 
@@ -39,6 +42,10 @@ export async function createMonorepo(
   console.log(`📦 Template type: ${templateType}`);
   console.log("");
 
+  const packageManager = detectPackageManager();
+  console.log(`📦 Detected package manager: ${packageManager}`);
+  console.log("");
+
   const projectPath = join(process.cwd(), appName);
 
   // Create project directory
@@ -69,20 +76,20 @@ export async function createMonorepo(
 
   // Ensure Next.js is installed locally in the app directory for TypeScript config resolution
   console.log("  • Ensuring Next.js is properly installed locally");
-  runCommand("pnpm add next@latest", { cwd: webAppPath });
+  runCommand(getInstallCommand(packageManager, ["next@latest"]), { cwd: webAppPath });
 
   // Setup Supabase for web app
   await setupSupabase(webAppPath);
   
   if (templateType === "opinionated") {
     console.log("  • Setting up ShadCN UI components");
-    await setupShadcn(webAppPath, true);
+    await setupShadcn(webAppPath, true, packageManager);
     
     console.log("  • Installing additional dependencies");
-    runCommand("pnpm add zod @supabase/supabase-js @supabase/ssr server-only", { cwd: webAppPath });
+    runCommand(getInstallCommand(packageManager, ["zod", "@supabase/supabase-js", "@supabase/ssr", "server-only"]), { cwd: webAppPath });
   } else {
     console.log("  • Installing basic Supabase dependencies");
-    runCommand("pnpm add @supabase/supabase-js @supabase/ssr server-only", { cwd: webAppPath });
+    runCommand(getInstallCommand(packageManager, ["@supabase/supabase-js", "@supabase/ssr", "server-only"]), { cwd: webAppPath });
   }
 
   // Create environment files and client for Next.js
@@ -96,7 +103,7 @@ export async function createMonorepo(
     setupLegendState(webAppPath, false); // false = Next.js app
     
     console.log("  • Setting up Prettier and ESLint");
-    setupPrettierAndESLint(webAppPath, false); // false = Next.js app
+    setupPrettierAndESLint(webAppPath, false, packageManager); // false = Next.js app
   }
 
   // Configure Next.js for monorepo TypeScript imports
@@ -116,7 +123,7 @@ export async function createMonorepo(
 
   // Install dependencies
   console.log("  • Installing initial dependencies");
-  runCommand("pnpm install", { cwd: mobileAppPath });
+  runCommand(getWorkspaceInstallCommand(packageManager), { cwd: mobileAppPath });
 
   // Setup Expo Router for proper navigation
   console.log("🧭 Setting up Expo Router navigation...");
@@ -130,7 +137,7 @@ export async function createMonorepo(
 
   if (templateType === "opinionated") {
     console.log("  • Setting up React Native Reusables");
-    setupReactNativeReusables(mobileAppPath);
+    setupReactNativeReusables(mobileAppPath, packageManager);
     
     console.log("  • Adding gesture handler for navigation");
     runCommand("npx expo install react-native-gesture-handler", { cwd: mobileAppPath });
@@ -149,7 +156,7 @@ export async function createMonorepo(
     setupLegendState(mobileAppPath, true); // true = Expo app
     
     console.log("  • Setting up Prettier and ESLint");
-    setupPrettierAndESLint(mobileAppPath, true); // true = Expo app
+    setupPrettierAndESLint(mobileAppPath, true, packageManager); // true = Expo app
   }
 
   // Configure Expo for monorepo TypeScript imports
@@ -160,7 +167,7 @@ export async function createMonorepo(
   createCustomExpoHomePage(mobileAppPath);
 
   console.log("📦 Installing workspace dependencies...");
-  runCommand("pnpm install", { cwd: projectPath });
+  runCommand(getWorkspaceInstallCommand(packageManager), { cwd: projectPath });
 
   // Create default migration and update config
   console.log("🔄 Creating default Supabase migration...");
@@ -183,7 +190,7 @@ export async function createMonorepo(
   updatePackageJsonScripts(mobileAppPath, true, false); // Expo app
 
   // Create custom README
-  createProjectReadme(projectPath, appName, true, templateType);
+  createProjectReadme(projectPath, appName, true, templateType, packageManager);
 
   // Create CLAUDE.md for AI assistance
   console.log("📝 Creating CLAUDE.md for AI assistance...");
@@ -193,7 +200,7 @@ export async function createMonorepo(
   console.log("");
   console.log("🚀 Next steps:");
   console.log("  1. Start Supabase locally: supabase start");
-  console.log("  2. Run the web app: cd apps/web && pnpm dev");
+  console.log(`  2. Run the web app: cd apps/web && ${packageManager} dev`);
   console.log("  3. Run the mobile app: cd apps/mobile && npx expo start");
   console.log("  4. Check COOLIFY_DEPLOYMENT.md for deployment instructions");
 }
@@ -239,7 +246,7 @@ export async function createWebOnlyApp(
   
   // Install Supabase dependencies
   console.log("  • Installing Supabase dependencies");
-  if (!runCommand("pnpm add @supabase/supabase-js @supabase/ssr server-only")) {
+  if (!runCommand(getInstallCommand(packageManager, ["@supabase/supabase-js", "@supabase/ssr", "server-only"]))) {
     throw new Error("Failed to install Supabase dependencies");
   }
 
@@ -252,14 +259,14 @@ export async function createWebOnlyApp(
 
     if (addAllComponents) {
       console.log("  • Setting up ShadCN UI with all components");
-      await setupShadcn(projectPath, true);
+      await setupShadcn(projectPath, true, packageManager);
     } else {
       console.log("  • Setting up ShadCN UI (you can add components later)");
-      await setupShadcn(projectPath, false);
+      await setupShadcn(projectPath, false, packageManager);
     }
 
     console.log("  • Installing additional dependencies");
-    runCommand("pnpm add zod");
+    runCommand(getInstallCommand(packageManager, ["zod"]));
   }
 
   console.log("🗄️  Setting up Supabase integration...");
@@ -273,7 +280,7 @@ export async function createWebOnlyApp(
     setupLegendState(projectPath, false); // false = Next.js app
     
     console.log("  • Setting up Prettier and ESLint");
-    setupPrettierAndESLint(projectPath, false); // false = Next.js app
+    setupPrettierAndESLint(projectPath, false, packageManager); // false = Next.js app
   }
 
   // Create custom home page with Monolaunch branding
@@ -298,7 +305,7 @@ export async function createWebOnlyApp(
   updatePackageJsonScripts(projectPath, false, false); // Next.js app
 
   // Create custom README
-  createProjectReadme(projectPath, appName, false, templateType);
+  createProjectReadme(projectPath, appName, false, templateType, packageManager);
 
   // Create CLAUDE.md for AI assistance
   console.log("📝 Creating CLAUDE.md for AI assistance...");
@@ -322,7 +329,7 @@ module.exports = nextConfig
   console.log("🚀 Next steps:");
   console.log("  1. Update .env.local with your Supabase credentials");
   console.log("  2. Start Supabase locally: supabase start");
-  console.log("  3. Start development server: pnpm dev");
+  console.log(`  3. Start development server: ${packageManager} dev`);
   console.log("  4. Check COOLIFY_DEPLOYMENT.md for deployment instructions");
   console.log("");
   console.log("📝 Important:");

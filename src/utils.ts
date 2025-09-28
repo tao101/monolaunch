@@ -26,6 +26,65 @@ export function detectPackageManager(): "npm" | "yarn" | "pnpm" {
   }
 }
 
+// Helper function to get the appropriate install command for the detected package manager
+export function getInstallCommand(packageManager: "npm" | "yarn" | "pnpm", packages: string[], isDev: boolean = false): string {
+  const devFlag = isDev ? (packageManager === "npm" ? "--save-dev" : "--dev") : "";
+  const packagesStr = packages.join(" ");
+
+  switch (packageManager) {
+    case "pnpm":
+      return `pnpm add ${devFlag} ${packagesStr}`.trim();
+    case "yarn":
+      return `yarn add ${devFlag} ${packagesStr}`.trim();
+    case "npm":
+      return `npm install ${devFlag} ${packagesStr}`.trim();
+    default:
+      return `npm install ${devFlag} ${packagesStr}`.trim();
+  }
+}
+
+// Helper function to get the appropriate dlx/npx command for the detected package manager
+export function getDlxCommand(packageManager: "npm" | "yarn" | "pnpm", command: string): string {
+  switch (packageManager) {
+    case "pnpm":
+      return `pnpm dlx ${command}`;
+    case "yarn":
+      return `yarn dlx ${command}`;
+    case "npm":
+      return `npx ${command}`;
+    default:
+      return `npx ${command}`;
+  }
+}
+
+// Helper function to get the appropriate global install command for the detected package manager
+export function getGlobalInstallCommand(packageManager: "npm" | "yarn" | "pnpm", packageName: string): string {
+  switch (packageManager) {
+    case "pnpm":
+      return `pnpm add -g ${packageName}`;
+    case "yarn":
+      return `yarn global add ${packageName}`;
+    case "npm":
+      return `npm install -g ${packageName}`;
+    default:
+      return `npm install -g ${packageName}`;
+  }
+}
+
+// Helper function to get the appropriate workspace install command
+export function getWorkspaceInstallCommand(packageManager: "npm" | "yarn" | "pnpm"): string {
+  switch (packageManager) {
+    case "pnpm":
+      return "pnpm install";
+    case "yarn":
+      return "yarn install";
+    case "npm":
+      return "npm install";
+    default:
+      return "npm install";
+  }
+}
+
 // Utility function to execute shell commands with proper error handling
 export function runCommand(command: string, options?: { cwd?: string; silent?: boolean }): boolean {
   try {
@@ -62,19 +121,19 @@ export async function setupSupabase(projectPath: string): Promise<boolean> {
 }
 
 // Setup ShadCN UI with component installation
-export async function setupShadcn(projectPath: string, addAllComponents: boolean = true): Promise<boolean> {
+export async function setupShadcn(projectPath: string, addAllComponents: boolean = true, packageManager: "npm" | "yarn" | "pnpm" = "pnpm"): Promise<boolean> {
   console.log("🎨 Setting up ShadCN UI...");
-  
+
   // Initialize ShadCN
-  if (!runCommand("pnpm dlx shadcn@latest init --yes --defaults", { cwd: projectPath })) {
+  if (!runCommand(getDlxCommand(packageManager, "shadcn@latest init --yes --defaults"), { cwd: projectPath })) {
     return false;
   }
-  
+
   console.log("  • ShadCN UI initialized successfully");
-  
+
   if (addAllComponents) {
     // Add all ShadCN components
-    if (!runCommand("pnpm dlx shadcn@latest add --all --yes", { cwd: projectPath })) {
+    if (!runCommand(getDlxCommand(packageManager, "shadcn@latest add --all --yes"), { cwd: projectPath })) {
       console.log("  • Warning: Some components may not have been installed");
     } else {
       console.log("  • All ShadCN components installed successfully");
@@ -1447,7 +1506,7 @@ export function updatePackageJsonScripts(projectPath: string, isExpoApp: boolean
 }
 
 // Create custom README.md for the project
-export function createProjectReadme(projectPath: string, projectName: string, isMonorepo: boolean, templateType: "bare" | "opinionated"): void {
+export function createProjectReadme(projectPath: string, projectName: string, isMonorepo: boolean, templateType: "bare" | "opinionated", packageManager: "npm" | "yarn" | "pnpm" = "pnpm"): void {
   console.log("📄 Creating custom project README...");
   
   const readmeContent = `# ${projectName}
@@ -1522,17 +1581,17 @@ ${projectName}/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ and ${isMonorepo ? 'PNPM' : 'PNPM'}
+- Node.js 18+ and ${packageManager.toUpperCase()}
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 
 ### 1. Install Dependencies
 \`\`\`bash
-${isMonorepo ? 'pnpm install' : 'pnpm install'}
+${getWorkspaceInstallCommand(packageManager)}
 \`\`\`
 
 ### 2. Start Supabase
 \`\`\`bash
-${isMonorepo ? 'pnpm supabase:start' : 'pnpm supabase:start'}
+${packageManager} supabase:start
 \`\`\`
 
 This will start the local Supabase stack and show you the local development URLs and keys.
@@ -1546,20 +1605,20 @@ ${isMonorepo ? `- **Web app**: Update \`apps/web/.env.local\`
 
 ### 4. Generate Database Types
 \`\`\`bash
-${isMonorepo ? 'pnpm db:types' : 'pnpm db:types'}
+${packageManager} db:types
 \`\`\`
 
 ### 5. Start Development Servers
 ${isMonorepo ? `\`\`\`bash
 # Start both web and mobile apps
-pnpm dev
+${packageManager} dev
 
 # Or start individually:
-cd apps/web && pnpm dev        # Web app at http://localhost:3000
-cd apps/mobile && pnpm start  # Mobile app with Expo
+cd apps/web && ${packageManager} dev        # Web app at http://localhost:3000
+cd apps/mobile && npx expo start  # Mobile app with Expo
 \`\`\`
 ` : `\`\`\`bash
-pnpm dev  # Starts at http://localhost:3000
+${packageManager} dev  # Starts at http://localhost:3000
 \`\`\`
 `}
 ## 📦 Available Scripts
@@ -1715,7 +1774,7 @@ This project was generated using [**Monolaunch**](https://monolaunch.com) - a po
 
 ### Learn More
 - 🌐 Visit [monolaunch.com](https://monolaunch.com) for documentation and updates
-- 📦 Install globally: \`npm install -g monolaunch\`
+- 📦 Install globally: \`${getGlobalInstallCommand(packageManager, "monolaunch")}\`
 - 💬 Join our community for support and discussions
 
 ---
@@ -2170,13 +2229,13 @@ const styles = StyleSheet.create({
   }
 }
 
-export function setupReactNativeReusables(projectPath: string): boolean {
+export function setupReactNativeReusables(projectPath: string, packageManager: "npm" | "yarn" | "pnpm" = "pnpm"): boolean {
   try {
     console.log("  • Setting up React Native Reusables with CLI");
 
     // Try using the official CLI to add all components
     console.log("  • Installing all React Native Reusables components");
-    if (runCommand("pnpm dlx @react-native-reusables/cli@latest add --all --yes", { cwd: projectPath })) {
+    if (runCommand(getDlxCommand(packageManager, "@react-native-reusables/cli@latest add --all --yes"), { cwd: projectPath })) {
       console.log("  • All React Native Reusables components installed successfully");
       return true;
     }
@@ -2605,7 +2664,7 @@ export interface Database {
   }
 }
 
-export function setupPrettierAndESLint(projectPath: string, isExpoApp: boolean = false): boolean {
+export function setupPrettierAndESLint(projectPath: string, isExpoApp: boolean = false, packageManager: "npm" | "yarn" | "pnpm" = "pnpm"): boolean {
   try {
     console.log("🎨 Setting up Prettier and ESLint...");
 
@@ -2635,7 +2694,7 @@ module.exports = defineConfig([
     } else {
       // Setup for Next.js
       console.log("  • Installing ESLint and Prettier dependencies for Next.js");
-      runCommand("pnpm add --save-dev eslint-config-prettier eslint-plugin-prettier prettier", { cwd: projectPath });
+      runCommand(getInstallCommand(packageManager, ["eslint-config-prettier", "eslint-plugin-prettier", "prettier"], true), { cwd: projectPath });
 
       // Create .eslintrc.js for Next.js
       const eslintConfig = `const { FlatCompat } = require('@eslint/eslintrc');
