@@ -1,6 +1,6 @@
 {
   "name": "monolaunch",
-  "version": "1.1.502",
+  "version": "1.1.503",
   "description": "A powerful CLI tool for creating production-ready full-stack projects with Next.js, React Native (Expo), Supabase, and modern tooling",
   "main": "dist/index.js",
   "type": "module",

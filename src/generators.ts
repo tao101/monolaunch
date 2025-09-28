@@ -109,10 +109,9 @@ export async function createMonorepo(
     throw new Error("Failed to create Expo app");
   }
 
-  // Install dependencies and ensure Expo CLI is available locally for TypeScript config resolution
-  console.log("  • Installing Expo dependencies and CLI locally");
+  // Install dependencies
+  console.log("  • Installing initial dependencies");
   runCommand("pnpm install", { cwd: mobileAppPath });
-  runCommand("pnpm add expo@latest", { cwd: mobileAppPath });
 
   // Setup Expo Router for proper navigation
   console.log("🧭 Setting up Expo Router navigation...");

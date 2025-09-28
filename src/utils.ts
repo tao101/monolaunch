@@ -2024,17 +2024,11 @@ ${isMonorepo ? '- Expo docs: https://docs.expo.dev' : ''}
 
 export function setupExpoRouter(projectPath: string): boolean {
   try {
-    console.log("  • Installing Expo SDK 52 and dependencies");
+    console.log("  • Installing latest Expo SDK and Router dependencies");
 
-    // Install the latest Expo SDK 52
-    if (!runCommand("pnpm add expo@~52.0.0", { cwd: projectPath })) {
-      throw new Error("Failed to install Expo SDK");
-    }
-
-    console.log("  • Installing Expo Router v5 and dependencies");
-
-    // Install Expo Router v5 and required dependencies
-    const installCmd = "npx expo install expo-router@latest react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar";
+    // Install latest Expo SDK and all dependencies in one command
+    // This ensures compatibility between all packages
+    const installCmd = "npx expo install expo@latest expo-router react-native-safe-area-context react-native-screens expo-linking expo-constants expo-status-bar";
     if (!runCommand(installCmd, { cwd: projectPath })) {
       throw new Error("Failed to install Expo Router dependencies");
     }
