@@ -1703,9 +1703,26 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
+## 🛠️ Generated with Monolaunch
+
+This project was generated using [**Monolaunch**](https://monolaunch.com) - a powerful CLI tool for creating production-ready full-stack projects with modern tooling.
+
+### Why Monolaunch?
+- ⚡ **Instant Setup**: Get a complete ${isMonorepo ? 'monorepo with web and mobile apps' : 'Next.js application'} in minutes
+- 🔧 **Best Practices**: Pre-configured with industry-standard tools and patterns
+- 🚀 **Production Ready**: Optimized for deployment with Coolify and Supabase
+- 🔄 **Always Updated**: Uses the latest versions of all frameworks and dependencies
+
+### Learn More
+- 🌐 Visit [monolaunch.com](https://monolaunch.com) for documentation and updates
+- 📦 Install globally: \`npm install -g monolaunch\`
+- 💬 Join our community for support and discussions
+
+---
+
 **Happy coding!** 🚀
 
-*For questions or support, check the project documentation or open an issue.*
+*Generated with ❤️ by [Monolaunch CLI](https://monolaunch.com)*
 `;
 
   writeFileSync(join(projectPath, "README.md"), readmeContent);
@@ -2715,4 +2732,241 @@ pnpm-lock.yaml
     console.error("Failed to setup Prettier and ESLint:", error);
     return false;
   }
+}
+
+// Create custom Next.js home page with Monolaunch branding
+export function createCustomNextjsHomePage(projectPath: string): void {
+  console.log("🏠 Creating custom Next.js home page...");
+
+  const homePageContent = `import Link from 'next/link'
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-2xl mx-auto text-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Thanks for using{' '}
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Monolaunch
+              </span>
+              !
+            </h1>
+            <p className="text-xl text-gray-600 mb-8">
+              Your production-ready Next.js application with Supabase integration is ready to go.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">🚀 What's included:</h2>
+              <ul className="text-left text-gray-600 space-y-1">
+                <li>• Next.js 15 with App Router</li>
+                <li>• TypeScript configuration</li>
+                <li>• Tailwind CSS styling</li>
+                <li>• Supabase backend integration</li>
+                <li>• Production deployment ready</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="https://monolaunch.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              >
+                Visit Monolaunch.com
+                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <Link
+                href="/docs"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500">
+              Generated with ❤️ by{' '}
+              <a
+                href="https://monolaunch.com"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Monolaunch CLI
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}`;
+
+  const homePagePath = join(projectPath, 'src', 'app', 'page.tsx');
+  writeFileSync(homePagePath, homePageContent);
+  console.log("  • Custom Next.js home page created");
+}
+
+// Create custom Expo home page with Monolaunch branding
+export function createCustomExpoHomePage(projectPath: string): void {
+  console.log("📱 Creating custom Expo home page...");
+
+  const homePageContent = `import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
+
+export default function Index() {
+  const openMonolaunchWebsite = () => {
+    Linking.openURL('https://monolaunch.com');
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            Thanks for using{' '}
+            <Text style={styles.brandText}>Monolaunch</Text>!
+          </Text>
+          <Text style={styles.subtitle}>
+            Your production-ready React Native app with Supabase integration is ready to go.
+          </Text>
+        </View>
+
+        <View style={styles.featuresCard}>
+          <Text style={styles.featuresTitle}>🚀 What's included:</Text>
+          <View style={styles.featuresList}>
+            <Text style={styles.featureItem}>• React Native with Expo</Text>
+            <Text style={styles.featureItem}>• TypeScript configuration</Text>
+            <Text style={styles.featureItem}>• Expo Router navigation</Text>
+            <Text style={styles.featureItem}>• Supabase backend integration</Text>
+            <Text style={styles.featureItem}>• Cross-platform compatibility</Text>
+          </View>
+        </View>
+
+        <View style={styles.buttons}>
+          <Pressable style={styles.primaryButton} onPress={openMonolaunchWebsite}>
+            <Text style={styles.primaryButtonText}>Visit Monolaunch.com</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Generated with ❤️ by{' '}
+            <Text style={styles.footerLink} onPress={openMonolaunchWebsite}>
+              Monolaunch CLI
+            </Text>
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  header: {
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#1a202c',
+    marginBottom: 16,
+    lineHeight: 40,
+  },
+  brandText: {
+    color: '#3182ce',
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: '#4a5568',
+    lineHeight: 26,
+  },
+  featuresCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    width: '100%',
+  },
+  featuresTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a202c',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  featuresList: {
+    alignItems: 'flex-start',
+  },
+  featureItem: {
+    fontSize: 16,
+    color: '#4a5568',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  buttons: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  primaryButton: {
+    backgroundColor: '#3182ce',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#718096',
+    textAlign: 'center',
+  },
+  footerLink: {
+    color: '#3182ce',
+    fontWeight: '500',
+  },
+});`;
+
+  const homePagePath = join(projectPath, 'app', 'index.tsx');
+  writeFileSync(homePagePath, homePageContent);
+  console.log("  • Custom Expo home page created");
 }

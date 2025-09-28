@@ -25,7 +25,9 @@ import {
   setupPrettierAndESLint,
   configureNextjsForMonorepo,
   configureExpoForMonorepo,
-  createRootTsConfig
+  createRootTsConfig,
+  createCustomNextjsHomePage,
+  createCustomExpoHomePage
 } from "./utils.js";
 
 export async function createMonorepo(
@@ -101,6 +103,9 @@ export async function createMonorepo(
   console.log("  • Configuring Next.js for monorepo");
   configureNextjsForMonorepo(webAppPath);
 
+  // Create custom home page with Monolaunch branding
+  createCustomNextjsHomePage(webAppPath);
+
   console.log("📱 Setting up React Native Expo app...");
   const mobileAppPath = join(projectPath, "apps", "mobile");
   
@@ -150,6 +155,9 @@ export async function createMonorepo(
   // Configure Expo for monorepo TypeScript imports
   console.log("  • Configuring Expo for monorepo");
   configureExpoForMonorepo(mobileAppPath);
+
+  // Create custom home page with Monolaunch branding
+  createCustomExpoHomePage(mobileAppPath);
 
   console.log("📦 Installing workspace dependencies...");
   runCommand("pnpm install", { cwd: projectPath });
@@ -267,6 +275,9 @@ export async function createWebOnlyApp(
     console.log("  • Setting up Prettier and ESLint");
     setupPrettierAndESLint(projectPath, false); // false = Next.js app
   }
+
+  // Create custom home page with Monolaunch branding
+  createCustomNextjsHomePage(projectPath);
 
   // Create default migration and update config
   console.log("🔄 Creating default Supabase migration...");
