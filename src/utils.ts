@@ -409,14 +409,19 @@ export function createPnpmWorkspace(projectPath: string): void {
     }
   };
 
-  // Create .npmrc for proper pnpm hoisting (required for Metro compatibility)
-  const npmrcContent = `node-linker=hoisted
+  // Create .pnpmrc for pnpm-specific configuration (required for Metro compatibility)
+  const pnpmrcContent = `node-linker=hoisted
 hoist-pattern[]=*expo*
 hoist-pattern[]=*react-native*
 hoist-pattern[]=*metro*`;
 
+  // Create minimal .npmrc for cross-compatible settings
+  const npmrcContent = `# Cross-package manager configuration
+registry=https://registry.npmjs.org/`;
+
   writeFileSync(join(projectPath, "pnpm-workspace.yaml"), workspaceContent);
   writeFileSync(join(projectPath, "package.json"), JSON.stringify(rootPackageJson, null, 2));
+  writeFileSync(join(projectPath, ".pnpmrc"), pnpmrcContent);
   writeFileSync(join(projectPath, ".npmrc"), npmrcContent);
   console.log("  • pnpm workspace configuration created");
 }
@@ -581,7 +586,7 @@ export function configureExpoForMonorepo(expoPath: string): void {
       module: "esnext",
       jsx: "react-native",
       lib: ["esnext"],
-      moduleResolution: "node",
+      moduleResolution: "bundler",
       allowSyntheticDefaultImports: true,
       esModuleInterop: true,
       noEmit: true,
